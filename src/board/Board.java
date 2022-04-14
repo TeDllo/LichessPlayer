@@ -16,4 +16,6 @@ public interface Board {
     Color turn();
 
     void showBoard();
+
+    void setOurColor(Color color);
 }

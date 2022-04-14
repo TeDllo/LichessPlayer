@@ -31,18 +31,15 @@ public class LichessClient {
 
     private InputStream get(String path) throws IOException {
         HttpURLConnection urlConnection = openConnection(path);
-        if (log) {
-            debugRequest("GET", urlConnection);
-        }
+        handleResponse("GET", urlConnection);
         return urlConnection.getInputStream();
     }
 
     private void post(String path) throws IOException {
         HttpURLConnection urlConnection = openConnection(path);
         urlConnection.setRequestMethod("POST");
-        if (log) {
-            debugRequest("POST", urlConnection);
-        }
+        handleResponse("POST", urlConnection);
+
     }
 
     private HttpURLConnection openConnection(String path) throws IOException {
@@ -52,10 +49,15 @@ public class LichessClient {
         return urlConnection;
     }
 
-    private static void debugRequest(String type, HttpURLConnection urlConnection) throws IOException {
+    private void handleResponse(String type, HttpURLConnection urlConnection) throws IOException {
 
-        System.out.println("Making " + type + " request:");
-        System.out.println(urlConnection.getResponseCode() + " " + urlConnection.getResponseMessage());
+        int code = urlConnection.getResponseCode();
+        String message = urlConnection.getResponseMessage();
+
+        if (log) {
+            System.out.println("Making " + type + " request:");
+            System.out.println(code + " " + message);
+        }
 
     }
 }

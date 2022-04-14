@@ -1,7 +1,6 @@
 package engine;
 
 import board.Board;
-import board.Color;
 
 public interface Engine {
 
