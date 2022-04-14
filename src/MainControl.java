@@ -7,9 +7,9 @@ import lichess.LichessClient;
 
 public class MainControl {
 
-    public static String access_token = "lip_EZKvEphkXmkXbdDj6RXW";
-    public static String nickname = "TeDllo";
-    public static String gameID = "E89GfR95HsbW";
+    public static String access_token = "";
+    public static String nickname = "";
+    public static String gameID = "";
 
     public static void main(String... args) throws Exception {
         LichessClient client = new LichessClient(access_token, false);

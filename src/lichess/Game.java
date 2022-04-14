@@ -19,6 +19,8 @@ public class Game {
     private final Board board;
     private final Engine engine;
 
+    private boolean repeat = false;
+
     public Game(String nickname, String GameID, LichessClient client, Board board, Engine engine) {
         this.nickname = nickname;
         this.GameID = GameID;
@@ -29,18 +31,29 @@ public class Game {
 
     public void start() throws IOException {
         System.out.printf("Game started. GameID: %s.\n", GameID);
-        stream();
+
+        boolean stop = false;
+        while (!stop) {
+            try {
+                stream();
+                stop = true;
+            } catch (IOException e) {
+                System.err.println(e.getMessage());
+            }
+        }
     }
 
     private void stream() throws IOException {
         InputStream in = client.streamRequest(GameID);
         String eventJSON = extractData(in);
         while (eventJSON != null) {
-//            System.out.printf("eventJSON: %s\n", eventJSON);
+            repeat = false;
             if (!eventJSON.equals("")) {
                 process(eventJSON);
             }
-            eventJSON = extractData(in);
+            if (!repeat) {
+                eventJSON = extractData(in);
+            }
         }
         System.out.println("Game is finished!");
     }
@@ -56,11 +69,10 @@ public class Game {
             board.setOurColor(getColor(eventJSON));
         }
 
-        if (Objects.equals(type, "gameState")) {
-            String status = parseField("status", eventJSON, false);
-            if (Objects.equals(status, "resign")) {
-                return;
-            };
+        String status = parseField("status", eventJSON, false);
+        if (status != null && !status.equals("started")) {
+            System.out.printf("Status: %s.\n", status);
+            return;
         }
 
         if (!Objects.equals(type, "chatLine")) {
@@ -73,9 +85,14 @@ public class Game {
         board.insertMoves(moves);
         System.out.printf("Moves: %s\n", moves);
         if (board.isOurMove()) {
-            String nextMove = engine.nextMove(board);
-            board.makeMove(nextMove);
-            client.makeMoveRequest(GameID, nextMove);
+            try {
+                String nextMove = engine.nextMove(board);
+                client.makeMoveRequest(GameID, nextMove);
+                board.makeMove(nextMove);
+            } catch (IOException e) {
+                System.err.println(e.getMessage());
+                repeat = true;
+            }
         }
     }
 
