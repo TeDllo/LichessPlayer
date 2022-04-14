@@ -16,6 +16,7 @@ public class HumanEngine implements Engine {
             if (!board.correctMove(move)) {
                 System.err.println("Move is incorrect.");
             } else {
+                System.out.println("Move is correct.");
                 return move;
             }
         }

@@ -1,5 +1,5 @@
 package board;
 
 public enum Figure {
-    KING, QUEEN, BISHOP, KNIGHT, ROOK, PAWN
+    KING, QUEEN, BISHOP, NIGHT, ROOK, PAWN
 }

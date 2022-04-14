@@ -29,13 +29,13 @@ public class Game {
         this.engine = engine;
     }
 
-    public void start() throws IOException {
+    public void start() {
         System.out.printf("Game started. GameID: %s.\n", GameID);
 
         boolean stop = false;
         while (!stop) {
             try {
-                stream();
+                streamGame();
                 stop = true;
             } catch (IOException e) {
                 System.err.println(e.getMessage());
@@ -43,7 +43,7 @@ public class Game {
         }
     }
 
-    private void stream() throws IOException {
+    private void streamGame() throws IOException {
         InputStream in = client.streamRequest(GameID);
         String eventJSON = extractData(in);
         while (eventJSON != null) {
@@ -88,7 +88,7 @@ public class Game {
             try {
                 String nextMove = engine.nextMove(board);
                 client.makeMoveRequest(GameID, nextMove);
-                board.makeMove(nextMove);
+                board.appendMove(nextMove);
             } catch (IOException e) {
                 System.err.println(e.getMessage());
                 repeat = true;
