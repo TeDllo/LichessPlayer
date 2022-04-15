@@ -6,6 +6,8 @@ import board.Color;
 import board.Move;
 import engine.Engine;
 
+import static lichess.JSONParser.parseField;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
@@ -97,16 +99,5 @@ public class Game {
         String white = parseField("white", eventJSON, true);
         String id = parseField("id", white, false);
         return Objects.equals(id, nickname) ? Color.WHITE : Color.BLACK;
-    }
-
-    public static String parseField(String field, String body, boolean isObject) {
-        try {
-            String end = (isObject ? "}" : "\"");
-            int start = body.indexOf(field) + field.length() + 3;
-            int stop = body.indexOf(end, start);
-            return body.substring(start, stop);
-        } catch (Exception e) {
-            return null;
-        }
     }
 }
