@@ -1,5 +1,6 @@
 package lichess;
 
+import board.BadMoveException;
 import board.Board;
 import board.Color;
 import engine.Engine;
@@ -45,22 +46,17 @@ public class Game {
 
     private void streamGame() throws IOException {
         InputStream in = client.streamRequest(GameID);
-        String eventJSON = extractData(in);
+        String eventJSON = client.extractData(in);
         while (eventJSON != null) {
             repeat = false;
             if (!eventJSON.equals("")) {
                 process(eventJSON);
             }
             if (!repeat) {
-                eventJSON = extractData(in);
+                eventJSON = client.extractData(in);
             }
         }
         System.out.println("Game is finished!");
-    }
-
-    private String extractData(InputStream in) throws IOException {
-        return new BufferedReader(new InputStreamReader(in,
-                StandardCharsets.UTF_8)).readLine();
     }
 
     public void process(String eventJSON) throws IOException {
@@ -80,7 +76,7 @@ public class Game {
         }
     }
 
-    private void nextMove(String moves) throws IOException {
+    private void nextMove(String moves) {
         assert moves != null;
         board.insertMoves(moves);
         System.out.printf("Moves: %s\n", moves);
@@ -91,6 +87,9 @@ public class Game {
                 board.appendMove(nextMove);
             } catch (IOException e) {
                 System.err.println(e.getMessage());
+                repeat = true;
+            } catch (BadMoveException e) {
+                System.err.println("Bad move");
                 repeat = true;
             }
         }

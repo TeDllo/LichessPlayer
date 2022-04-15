@@ -1,9 +1,12 @@
 package lichess;
 
+import board.BadMoveException;
+
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 public class LichessClient {
 
@@ -59,5 +62,18 @@ public class LichessClient {
             System.out.println(code + " " + message);
         }
 
+        if (code != 200) {
+            InputStream in = urlConnection.getErrorStream();
+            String msg = extractData(in);
+            if (msg.contains("move")) {
+                System.err.println(msg);
+                throw new BadMoveException();
+            }
+        }
+    }
+
+    public String extractData(InputStream in) throws IOException {
+        return new BufferedReader(new InputStreamReader(in,
+                StandardCharsets.UTF_8)).readLine();
     }
 }
