@@ -7,12 +7,12 @@ import java.util.Scanner;
 public class HumanEngine implements Engine {
 
     @Override
-    public String nextMove(Board board) {
+    public Move nextMove(Board board) {
         Scanner scanner = new Scanner(System.in);
         while (true) {
             board.showBoard();
             System.out.println("Insert your move for " + board.turn().name());
-            String move = scanner.next();
+            Move move = new Move(scanner.next());
             if (!board.correctMove(move)) {
                 System.err.println("Move is incorrect.");
             } else {

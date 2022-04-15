@@ -2,6 +2,8 @@ package board;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static board.Figure.*;
 import static board.Color.*;
@@ -11,7 +13,9 @@ public class ClassicBoard implements Board {
 
     private Color ourColor;
     private Cell[][] field;
-    private ArrayList<String> moves;
+    private ArrayList<Move> moves;
+
+    private static final Function<String, Move> mapper = (Move::new);
 
     public ClassicBoard() {
         moves = new ArrayList<>();
@@ -21,13 +25,15 @@ public class ClassicBoard implements Board {
     @Override
     public void insertMoves(String moves) {
         if (!moves.isEmpty()) {
-            this.moves = new ArrayList<>(Arrays.asList(moves.split(" ")));
+            this.moves = Arrays.stream(moves.split(" "))
+                    .map(mapper)
+                    .collect(Collectors.toCollection(ArrayList::new));
         }
         updateField();
     }
 
     @Override
-    public void appendMove(String move) {
+    public void appendMove(Move move) {
         moves.add(move);
         makeMove(move);
     }
@@ -71,14 +77,9 @@ public class ClassicBoard implements Board {
     }
 
     @Override
-    public boolean correctMove(String move) {
-        int letterFrom = move.charAt(0) - 'a' + 1;
-        int digitFrom = move.charAt(1) - '0';
-        int letterTo = move.charAt(2) - 'a' + 1;
-        int digitTo = move.charAt(3) - '0';
-
-        boolean isMove = (letterFrom != letterTo || digitFrom != digitTo);
-        boolean hasFigure = field[letterFrom][digitFrom].color != EMPTY;
+    public boolean correctMove(Move move) {
+        boolean isMove = (move.letFrom != move.letTo || move.digFrom != move.digTo);
+        boolean hasFigure = field[move.letFrom][move.digFrom].color != EMPTY;
         boolean hasAbility = checkAbility(move);
         boolean hasRights = checkRights(move);
 
@@ -97,26 +98,23 @@ public class ClassicBoard implements Board {
 
     private void updateField() {
         initField();
-        for (String move : moves) {
+        for (Move move : moves) {
             makeMove(move);
         }
     }
 
-    private void makeMove(String move) {
-        int letterFrom = move.charAt(0) - 'a' + 1;
-        int digitFrom = move.charAt(1) - '0';
-        int letterTo = move.charAt(2) - 'a' + 1;
-        int digitTo = move.charAt(3) - '0';
+    private void makeMove(Move move) {
+        field[move.letTo][move.digTo].figure = field[move.letFrom][move.digFrom].figure;
+        field[move.letTo][move.digTo].color = field[move.letFrom][move.digFrom].color;
 
-        field[letterTo][digitTo].figure = field[letterFrom][digitFrom].figure;
-        field[letterTo][digitTo].color = field[letterFrom][digitFrom].color;
-
-        field[letterFrom][digitFrom].color = EMPTY;
+        field[move.letFrom][move.digFrom].color = EMPTY;
 
         // Checking transforming into QUEEN
-        if (digitTo == 8 && field[letterTo][digitTo].color == WHITE
-                || digitTo == 1 && field[letterTo][digitTo].color == BLACK) {
-            field[letterTo][digitTo].figure = QUEEN;
+        if (field[move.letTo][move.digTo].figure == PAWN) {
+            int line = field[move.letTo][move.digTo].color == WHITE ? 8 : 1;
+            if (move.digTo == line) {
+                field[move.letTo][move.digTo].figure = QUEEN;
+            }
         }
     }
 
@@ -133,24 +131,11 @@ public class ClassicBoard implements Board {
                         field[letter][digit].figure = PAWN;
                     } else {
                         switch (letter) {
-                            case 1:
-                            case 8:
-                                field[letter][digit].figure = ROOK;
-                                break;
-                            case 2:
-                            case 7:
-                                field[letter][digit].figure = NIGHT;
-                                break;
-                            case 3:
-                            case 6:
-                                field[letter][digit].figure = BISHOP;
-                                break;
-                            case 4:
-                                field[letter][digit].figure = QUEEN;
-                                break;
-                            case 5:
-                                field[letter][digit].figure = KING;
-                                break;
+                            case 1, 8 -> field[letter][digit].figure = ROOK;
+                            case 2, 7 -> field[letter][digit].figure = NIGHT;
+                            case 3, 6 -> field[letter][digit].figure = BISHOP;
+                            case 4 -> field[letter][digit].figure = QUEEN;
+                            case 5 -> field[letter][digit].figure = KING;
                         }
                     }
 
@@ -160,117 +145,83 @@ public class ClassicBoard implements Board {
         }
     }
 
-    private boolean checkRights(String move) {
+    private boolean checkRights(Move move) {
         return true;
     }
 
-    private boolean checkAbility(String move) {
-        int letterFrom = move.charAt(0) - 'a' + 1;
-        int digitFrom = move.charAt(1) - '0';
-
-        Figure figure = field[letterFrom][digitFrom].figure;
-        switch (figure) {
-            case KING:
-                return kingAbility(move);
-            case QUEEN:
-                return queenAbility(move);
-            case BISHOP:
-                return bishopAbility(move);
-            case NIGHT:
-                return nightAbility(move);
-            case ROOK:
-                return rookAbility(move);
-            default:
-                return pawnAbility(move);
-        }
+    private boolean checkAbility(Move move) {
+        Figure figure = field[move.letFrom][move.digFrom].figure;
+        return switch (figure) {
+            case KING -> kingAbility(move);
+            case QUEEN -> queenAbility(move);
+            case BISHOP -> bishopAbility(move);
+            case NIGHT -> nightAbility(move);
+            case ROOK -> rookAbility(move);
+            default -> pawnAbility(move);
+        };
     }
 
-    private boolean pawnAbility(String move) {
-        int letterFrom = move.charAt(0) - 'a' + 1;
-        int digitFrom = move.charAt(1) - '0';
-        int letterTo = move.charAt(2) - 'a' + 1;
-        int digitTo = move.charAt(3) - '0';
-
-        Color sideFrom = field[letterFrom][digitFrom].color;
-        Color sideTo = field[letterTo][digitTo].color;
+    private boolean pawnAbility(Move move) {
+        Color sideFrom = field[move.letFrom][move.digFrom].color;
+        Color sideTo = field[move.letTo][move.digTo].color;
 
         int reverse = (sideFrom == WHITE ? 1 : -1);
 
         if (sideTo == EMPTY) {
-            boolean one = digitTo - digitFrom == reverse;
-            boolean two = digitTo - digitFrom == 2 * reverse && digitFrom == (reverse == -1 ? 7 : 2);
+            boolean one = move.digTo - move.digFrom == reverse;
+            boolean two = move.digTo - move.digFrom == 2 * reverse && move.digFrom == (reverse == -1 ? 7 : 2);
             return one || two;
         } else {
-            return Math.abs(letterTo - letterFrom) == 1 && digitTo - digitFrom == reverse && sideFrom != sideTo;
+            return Math.abs(move.letTo - move.letFrom) == 1 && move.digTo - move.digFrom == reverse && sideFrom != sideTo;
         }
     }
 
-    private boolean rookAbility(String move) {
-        int letterFrom = move.charAt(0) - 'a' + 1;
-        int digitFrom = move.charAt(1) - '0';
-        int letterTo = move.charAt(2) - 'a' + 1;
-        int digitTo = move.charAt(3) - '0';
-
-        Color sideFrom = field[letterFrom][digitFrom].color;
-        Color sideTo = field[letterTo][digitTo].color;
+    private boolean rookAbility(Move move) {
+        Color sideFrom = field[move.letFrom][move.digFrom].color;
+        Color sideTo = field[move.letTo][move.digTo].color;
 
         boolean rightTarget = checkTarget(sideFrom, sideTo);
-        boolean straightPath = checkStraightPath(letterFrom, digitFrom, letterTo, digitTo);
-        boolean cleanPath = checkClearPath(letterFrom, digitFrom, letterTo, digitTo);
+        boolean straightPath = checkStraightPath(move);
+        boolean cleanPath = checkClearPath(move);
         return rightTarget && straightPath && cleanPath;
     }
 
-    private boolean nightAbility(String move) {
-        int letterFrom = move.charAt(0) - 'a' + 1;
-        int digitFrom = move.charAt(1) - '0';
-        int letterTo = move.charAt(2) - 'a' + 1;
-        int digitTo = move.charAt(3) - '0';
+    private boolean nightAbility(Move move) {
+        Color sideFrom = field[move.letFrom][move.digFrom].color;
+        Color sideTo = field[move.letTo][move.digTo].color;
 
-        Color sideFrom = field[letterFrom][digitFrom].color;
-        Color sideTo = field[letterTo][digitTo].color;
+        int dLet = Math.abs(move.letTo - move.letFrom);
+        int dDig = Math.abs(move.digTo - move.digFrom);
 
-        boolean rightPath = Math.abs(letterTo - letterFrom) == 2
-                && Math.abs(digitTo - digitFrom) == 1
-                || Math.abs(letterTo - letterFrom) == 1
-                && Math.abs(digitTo - digitFrom) == 2;
+        boolean rightPath = (dLet == 2 && dDig == 1) || (dLet == 1 && dDig == 2);
 
         return rightPath && checkTarget(sideFrom, sideTo);
     }
 
-    private boolean bishopAbility(String move) {
-        int letterFrom = move.charAt(0) - 'a' + 1;
-        int digitFrom = move.charAt(1) - '0';
-        int letterTo = move.charAt(2) - 'a' + 1;
-        int digitTo = move.charAt(3) - '0';
-
-        Color sideFrom = field[letterFrom][digitFrom].color;
-        Color sideTo = field[letterTo][digitTo].color;
+    private boolean bishopAbility(Move move) {
+        Color sideFrom = field[move.letFrom][move.digFrom].color;
+        Color sideTo = field[move.letTo][move.digTo].color;
 
         boolean rightTarget = (sideTo == EMPTY || sideFrom != sideTo);
-        boolean sidePath = checkSidePath(letterFrom, digitFrom, letterTo, digitTo);
-        boolean cleanPath = checkClearPath(letterFrom, digitFrom, letterTo, digitTo);
+        boolean sidePath = checkSidePath(move);
+        boolean cleanPath = checkClearPath(move);
 
         return rightTarget && sidePath && cleanPath;
     }
 
-    private boolean kingAbility(String move) {
+    private boolean kingAbility(Move move) {
         System.out.println("We can't check this move yet.");
         return true;
     }
 
-    private boolean queenAbility(String move) {
-        int letterFrom = move.charAt(0) - 'a' + 1;
-        int digitFrom = move.charAt(1) - '0';
-        int letterTo = move.charAt(2) - 'a' + 1;
-        int digitTo = move.charAt(3) - '0';
-
-        Color sideFrom = field[letterFrom][digitFrom].color;
-        Color sideTo = field[letterTo][digitTo].color;
+    private boolean queenAbility(Move move) {
+        Color sideFrom = field[move.letFrom][move.digFrom].color;
+        Color sideTo = field[move.letTo][move.digTo].color;
 
         boolean rightTarget = checkTarget(sideFrom, sideTo);
-        boolean straightPath = checkStraightPath(letterFrom, digitFrom, letterTo, digitTo);
-        boolean sidePath = checkSidePath(letterFrom, digitFrom, letterTo, digitTo);
-        boolean cleanPath = checkClearPath(letterFrom, digitFrom, letterTo, digitTo);
+        boolean straightPath = checkStraightPath(move);
+        boolean sidePath = checkSidePath(move);
+        boolean cleanPath = checkClearPath(move);
 
         return rightTarget && (straightPath || sidePath) && cleanPath;
     }
@@ -279,19 +230,20 @@ public class ClassicBoard implements Board {
         return sideTo == EMPTY || sideFrom != sideTo;
     }
 
-    private boolean checkStraightPath(int letterFrom, int digitFrom, int letterTo, int digitTo) {
-        return letterFrom == letterTo || digitFrom == digitTo;
+    private boolean checkStraightPath(Move move) {
+        return move.letFrom == move.letTo || move.digFrom == move.digTo;
     }
 
-    private boolean checkSidePath(int letterFrom, int digitFrom, int letterTo, int digitTo) {
-        return Math.abs(letterTo - letterFrom) == Math.abs(digitTo - digitFrom);
+    private boolean checkSidePath(Move move) {
+        return Math.abs(move.letTo - move.letFrom) == Math.abs(move.digTo - move.digFrom);
     }
 
-    private boolean checkClearPath(int xFrom, int yFrom, int xTo, int yTo) {
-        int dx = dt(xFrom, xTo);
-        int dy = dt(yFrom, yTo);
+    private boolean checkClearPath(Move move) {
+        int dx = dt(move.letFrom, move.letTo);
+        int dy = dt(move.digFrom, move.digTo);
 
-        for (int x = xFrom + dx, y = yFrom + dy; x < xTo || y < yTo; x += dx, y += dy) {
+
+        for (int x = move.letFrom + dx, y = move.digFrom + dy; x < move.letTo || y < move.digTo; x += dx, y += dy) {
             if (field[x][y].color != EMPTY) {
                 return false;
             }

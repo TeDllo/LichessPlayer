@@ -1,9 +1,10 @@
 package engine;
 
 import board.Board;
+import board.Move;
 
 public interface Engine {
 
-    String nextMove(Board board);
+    Move nextMove(Board board);
 
 }

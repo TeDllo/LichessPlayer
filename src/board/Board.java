@@ -1,11 +1,11 @@
 package board;
 
 public interface Board {
-    void appendMove(String move);
+    void appendMove(Move move);
 
     void insertMoves(String moves);
 
-    boolean correctMove(String move);
+    boolean correctMove(Move move);
 
     boolean isCheck(Color side);
 

@@ -5,7 +5,7 @@ import board.*;
 public class HalfRandomEngine implements Engine {
 
     @Override
-    public String nextMove(Board board) {
+    public Move nextMove(Board board) {
         return null;
     }
 }

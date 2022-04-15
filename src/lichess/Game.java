@@ -3,13 +3,11 @@ package lichess;
 import board.BadMoveException;
 import board.Board;
 import board.Color;
+import board.Move;
 import engine.Engine;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
 public class Game {
@@ -59,7 +57,7 @@ public class Game {
         System.out.println("Game is finished!");
     }
 
-    public void process(String eventJSON) throws IOException {
+    public void process(String eventJSON) {
         String type = parseField("type", eventJSON, false);
         if (Objects.equals(type, "gameFull")) {
             board.setOurColor(getColor(eventJSON));
@@ -82,8 +80,8 @@ public class Game {
         System.out.printf("Moves: %s\n", moves);
         if (board.isOurMove()) {
             try {
-                String nextMove = engine.nextMove(board);
-                client.makeMoveRequest(GameID, nextMove);
+                Move nextMove = engine.nextMove(board);
+                client.makeMoveRequest(GameID, nextMove.text);
                 board.appendMove(nextMove);
             } catch (IOException e) {
                 System.err.println(e.getMessage());
