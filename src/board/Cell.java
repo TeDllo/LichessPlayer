@@ -8,10 +8,10 @@ public class Cell {
 
     @Override
     public String toString() {
-        return switch (color) {
+        return " " + switch (color) {
             case WHITE -> Character.toString(figure.name().charAt(0));
             case BLACK -> Character.toString(figure.name().toLowerCase().charAt(0));
-            default -> ".";
-        };
+            default -> " ";
+        } + " ";
     }
 }
