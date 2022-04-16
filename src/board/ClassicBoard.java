@@ -28,8 +28,8 @@ public class ClassicBoard implements Board {
             this.moves = Arrays.stream(moves.split(" "))
                     .map(mapper)
                     .collect(Collectors.toCollection(ArrayList::new));
+            updateField();
         }
-        updateField();
     }
 
     @Override
@@ -88,6 +88,31 @@ public class ClassicBoard implements Board {
 
     @Override
     public boolean isCheck(Color side) {
+        int kingLet = 1;
+        int kingDig = 1;
+
+        for (int let = 1; let < 9; let++) {
+            for (int dig = 1; dig < 9; dig++) {
+                if (field[let][dig].figure == KING
+                        && field[let][dig].color == side) {
+                    kingLet = let;
+                    kingDig = dig;
+                    break;
+                }
+            }
+        }
+
+        Color enemy = (side == WHITE ? BLACK : WHITE);
+
+        for (int let = 1; let < 9; let++) {
+            for (int dig = 1; dig < 9; dig++) {
+                if (field[let][dig].color == enemy
+                        && checkAbility(new Move(let, dig, kingLet, kingDig))) {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 
@@ -104,6 +129,16 @@ public class ClassicBoard implements Board {
     }
 
     private void makeMove(Move move) {
+
+        // Checking Castling
+        if (field[move.letFrom][move.digFrom].figure == KING && kingCastling(move, field[move.letFrom][move.digFrom].color)) {
+            int rookLetFrom = (move.letTo == 3 ? 1 : 8);
+            int rookDigFrom = (move.digTo);
+            int rookLetTo = (move.letTo == 3 ? 4 : 6);
+            int rookDigTo = (move.digTo);
+            makeMove(new Move(rookLetFrom, rookDigFrom, rookLetTo, rookDigTo));
+        }
+
         field[move.letTo][move.digTo].figure = field[move.letFrom][move.digFrom].figure;
         field[move.letTo][move.digTo].color = field[move.letFrom][move.digFrom].color;
 
@@ -146,7 +181,12 @@ public class ClassicBoard implements Board {
     }
 
     private boolean checkRights(Move move) {
-        return true;
+        ClassicBoard board = new ClassicBoard();
+        for (Move initMove : moves) {
+            board.appendMove(initMove);
+        }
+        board.appendMove(move);
+        return !board.isCheck(field[move.letFrom][move.digFrom].color);
     }
 
     private boolean checkAbility(Move move) {
@@ -202,7 +242,7 @@ public class ClassicBoard implements Board {
         Color sideFrom = field[move.letFrom][move.digFrom].color;
         Color sideTo = field[move.letTo][move.digTo].color;
 
-        boolean rightTarget = (sideTo == EMPTY || sideFrom != sideTo);
+        boolean rightTarget = checkTarget(sideFrom, sideTo);
         boolean sidePath = checkSidePath(move);
         boolean cleanPath = checkClearPath(move);
 
@@ -210,8 +250,28 @@ public class ClassicBoard implements Board {
     }
 
     private boolean kingAbility(Move move) {
-        System.out.println("We can't check this move yet.");
-        return true;
+        Color sideFrom = field[move.letFrom][move.digFrom].color;
+        Color sideTo = field[move.letTo][move.digTo].color;
+
+        boolean target = checkTarget(sideFrom, sideTo);
+        boolean stepLet = Math.abs(move.letFrom - move.letTo) <= 1;
+        boolean stepDig = Math.abs(move.digFrom - move.digTo) <= 1;
+
+        return target && stepLet && stepDig || kingCastling(move, sideFrom);
+    }
+
+    private boolean kingCastling(Move move, Color side) {
+        String[] moves = (side == WHITE
+                ? new String[]{"e1c1", "e1g1"}
+                : new String[]{"e8c8", "e8g8"});
+        int rookLet = (move.letTo == 3 ? 1 : 8);
+
+        boolean rightMove = move.text.equals(moves[0]) || move.text.equals(moves[1]);
+        boolean isRook = field[rookLet][move.digFrom].figure == ROOK;
+        boolean isMoved = field[rookLet][move.digFrom].moved;
+        boolean cleanPath = checkClearPath(new Move(move.letFrom, move.digFrom, rookLet, move.digFrom));
+
+        return rightMove && isRook && !isMoved && cleanPath && !isCheck(side);
     }
 
     private boolean queenAbility(Move move) {
@@ -239,11 +299,18 @@ public class ClassicBoard implements Board {
     }
 
     private boolean checkClearPath(Move move) {
+
+        boolean straight = checkStraightPath(move);
+        boolean side = checkSidePath(move);
+
+        if (!straight && !side) {
+            return false;
+        }
+
         int dx = dt(move.letFrom, move.letTo);
         int dy = dt(move.digFrom, move.digTo);
 
-
-        for (int x = move.letFrom + dx, y = move.digFrom + dy; x < move.letTo || y < move.digTo; x += dx, y += dy) {
+        for (int x = move.letFrom + dx, y = move.digFrom + dy; x != move.letTo || y != move.digTo; x += dx, y += dy) {
             if (field[x][y].color != EMPTY) {
                 return false;
             }

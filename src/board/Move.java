@@ -17,4 +17,13 @@ public class Move {
 
         text = move;
     }
+
+    public Move(int x1, int y1, int x2, int y2) {
+        letFrom = x1;
+        digFrom = y1;
+        letTo = x2;
+        digTo = y2;
+
+        text = String.format("%c%c%c%c", letFrom + 'a' - 1, digFrom, letTo + 'a' - 1, digTo);
+    }
 }

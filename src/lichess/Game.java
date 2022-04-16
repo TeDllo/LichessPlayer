@@ -79,17 +79,17 @@ public class Game {
     private void nextMove(String moves) {
         assert moves != null;
         board.insertMoves(moves);
-        System.out.printf("Moves: %s\n", moves);
         if (board.isOurMove()) {
+            Move nextMove = engine.nextMove(board);
             try {
-                Move nextMove = engine.nextMove(board);
                 client.makeMoveRequest(GameID, nextMove.text);
                 board.appendMove(nextMove);
             } catch (IOException e) {
                 System.err.println(e.getMessage());
                 repeat = true;
             } catch (BadMoveException e) {
-                System.err.println("Bad move");
+                System.err.println("!!!Bad move!!!\n" + nextMove.text);
+                board.showBoard();
                 repeat = true;
             }
         }
