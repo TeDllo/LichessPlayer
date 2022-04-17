@@ -1,6 +1,13 @@
 package board;
 
+import board.details.Cell;
+import board.details.Color;
+import board.details.Move;
+
 public interface Board {
+
+    Cell[][] getField();
+
     void appendMove(Move move);
 
     void insertMoves(String moves);

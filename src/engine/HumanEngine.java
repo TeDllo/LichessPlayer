@@ -1,6 +1,7 @@
 package engine;
 
 import board.*;
+import board.details.Move;
 
 import java.util.Scanner;
 

@@ -1,9 +1,9 @@
 package lichess;
 
-import board.BadMoveException;
+import board.exceptions.BadMoveException;
 import board.Board;
-import board.Color;
-import board.Move;
+import board.details.Color;
+import board.details.Move;
 import engine.Engine;
 
 import static lichess.JSONParser.parseField;

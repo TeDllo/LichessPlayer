@@ -5,10 +5,13 @@ import java.util.Arrays;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static board.Figure.*;
-import static board.Color.*;
+import static board.details.Figure.*;
+import static board.details.Color.*;
 
-import static color.Colors.*;
+import board.details.Cell;
+import board.details.Color;
+import board.details.Figure;
+import board.details.Move;
 
 public class ClassicBoard implements Board {
 
@@ -40,26 +43,13 @@ public class ClassicBoard implements Board {
     }
 
     @Override
+    public Cell[][] getField() {
+        return field;
+    }
+
+    @Override
     public void showBoard() {
-        System.out.printf("\t\t  %s's turn\n", turn().name());
-        updateField();
-        int reverse = (turn() == Color.BLACK ? 9 : 0);
-        for (int digit = 8; digit > 0; digit--) {
-            System.out.print(Math.abs(reverse - digit) + " | ");
-            for (int letter = 1; letter < 9; letter++) {
-                Cell cell = field[Math.abs(reverse - letter)][Math.abs(reverse - digit)];
-                String backgroundMode = ((digit + letter) % 2 == 1 ? ANSI_BLUE_BACKGROUND : ANSI_GREEN_BACKGROUND);
-                String colorMode = (cell.color == WHITE ? "" : ANSI_BLACK);
-                System.out.print(backgroundMode + colorMode + cell + ANSI_RESET);
-            }
-            System.out.println();
-        }
-        System.out.println("--|-------------------------");
-        System.out.print("  | ");
-        for (int letter = 1; letter < 9; letter++) {
-            System.out.print(" " + Character.toString(Math.abs(reverse - letter) + 'a' - 1) + " ");
-        }
-        System.out.println();
+        BoardPainter.paintBoard(this);
     }
 
     @Override

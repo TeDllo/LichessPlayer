@@ -1,4 +1,4 @@
-package board;
+package board.details;
 
 public class Move {
 

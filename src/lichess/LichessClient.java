@@ -1,6 +1,6 @@
 package lichess;
 
-import board.BadMoveException;
+import board.exceptions.BadMoveException;
 
 import java.io.*;
 import java.net.HttpURLConnection;
