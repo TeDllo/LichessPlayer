@@ -8,15 +8,14 @@ import java.util.stream.Collectors;
 import static board.details.Figure.*;
 import static board.details.Color.*;
 
-import board.details.Cell;
-import board.details.Color;
-import board.details.Figure;
-import board.details.Move;
+import board.details.*;
 
 public class ClassicBoard implements Board {
 
     private Color ourColor;
     private Cell[][] field;
+
+
     private ArrayList<Move> moves;
 
     private static final Function<String, Move> mapper = (Move::new);
@@ -37,9 +36,32 @@ public class ClassicBoard implements Board {
     }
 
     @Override
-    public void appendMove(Move move) {
+    public boolean isOurMoveByMoves(String moves) {
+        return (ourColor == WHITE) == (moves.split(" ").length % 2 == 0);
+    }
+
+    @Override
+    public void makeMove(Move move) {
         moves.add(move);
-        makeMove(move);
+
+        // Checking Castling
+        if (field[move.letFrom][move.digFrom].figure == KING && kingCastling(move, field[move.letFrom][move.digFrom].color)) {
+            makeCastling(move);
+        }
+
+        field[move.letTo][move.digTo].figure = field[move.letFrom][move.digFrom].figure;
+        field[move.letTo][move.digTo].color = field[move.letFrom][move.digFrom].color;
+
+        field[move.letFrom][move.digFrom].color = EMPTY;
+
+        // Checking transforming into QUEEN
+        if (field[move.letTo][move.digTo].figure == PAWN) {
+            int line = field[move.letTo][move.digTo].color == WHITE ? 8 : 1;
+            if (move.digTo == line) {
+                field[move.letTo][move.digTo].figure = QUEEN;
+            }
+        }
+
     }
 
     @Override
@@ -78,28 +100,29 @@ public class ClassicBoard implements Board {
         return isMove && hasFigure && hasAbility && hasRights;
     }
 
-    @Override
-    public boolean isCheck(Color side) {
-        int kingLet = 1;
-        int kingDig = 1;
-
+    private Point findKing(Color side) {
         for (int let = 1; let < 9; let++) {
             for (int dig = 1; dig < 9; dig++) {
                 if (field[let][dig].figure == KING
                         && field[let][dig].color == side) {
-                    kingLet = let;
-                    kingDig = dig;
-                    break;
+                    return new Point(let, dig);
                 }
             }
         }
+        return new Point(-1, -1);
+    }
+
+    @Override
+    public boolean isCheck(Color side) {
+
+        Point kingPoint = findKing(side);
 
         Color enemy = (side == WHITE ? BLACK : WHITE);
 
         for (int let = 1; let < 9; let++) {
             for (int dig = 1; dig < 9; dig++) {
                 if (field[let][dig].color == enemy
-                        && checkAbility(new Move(let, dig, kingLet, kingDig))) {
+                        && checkAbility(new Move(let, dig, kingPoint.letter, kingPoint.digit))) {
                     return true;
                 }
             }
@@ -109,7 +132,27 @@ public class ClassicBoard implements Board {
     }
 
     @Override
-    public boolean isMate() {
+    public boolean isMate(Color color) {
+        for (int letFrom = 1; letFrom < 9; letFrom++) {
+            for (int digFrom = 1; digFrom < 9; digFrom++) {
+                if ((field[letFrom][digFrom].color == color)
+                        && hasCorrectMove(letFrom, digFrom)) {
+                    return false;
+                }
+            }
+        }
+
+        return isCheck(color);
+    }
+
+    private boolean hasCorrectMove(int letterFrom, int digitFrom) {
+        for (int letter = 1; letter < 9; letter++) {
+            for (int digit = 1; digit < 9; digit++) {
+                if (correctMove(new Move(letterFrom, digitFrom, letter, digit))) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
@@ -120,29 +163,12 @@ public class ClassicBoard implements Board {
         }
     }
 
-    private void makeMove(Move move) {
-
-        // Checking Castling
-        if (field[move.letFrom][move.digFrom].figure == KING && kingCastling(move, field[move.letFrom][move.digFrom].color)) {
-            int rookLetFrom = (move.letTo == 3 ? 1 : 8);
-            int rookDigFrom = (move.digTo);
-            int rookLetTo = (move.letTo == 3 ? 4 : 6);
-            int rookDigTo = (move.digTo);
-            makeMove(new Move(rookLetFrom, rookDigFrom, rookLetTo, rookDigTo));
-        }
-
-        field[move.letTo][move.digTo].figure = field[move.letFrom][move.digFrom].figure;
-        field[move.letTo][move.digTo].color = field[move.letFrom][move.digFrom].color;
-
-        field[move.letFrom][move.digFrom].color = EMPTY;
-
-        // Checking transforming into QUEEN
-        if (field[move.letTo][move.digTo].figure == PAWN) {
-            int line = field[move.letTo][move.digTo].color == WHITE ? 8 : 1;
-            if (move.digTo == line) {
-                field[move.letTo][move.digTo].figure = QUEEN;
-            }
-        }
+    private void makeCastling(Move move) {
+        int rookLetFrom = (move.letTo == 3 ? 1 : 8);
+        int rookDigFrom = (move.digTo);
+        int rookLetTo = (move.letTo == 3 ? 4 : 6);
+        int rookDigTo = (move.digTo);
+        makeMove(new Move(rookLetFrom, rookDigFrom, rookLetTo, rookDigTo));
     }
 
     private void initField() {
@@ -175,9 +201,9 @@ public class ClassicBoard implements Board {
     private boolean checkRights(Move move) {
         ClassicBoard board = new ClassicBoard();
         for (Move initMove : moves) {
-            board.appendMove(initMove);
+            board.makeMove(initMove);
         }
-        board.appendMove(move);
+        board.makeMove(move);
         return !board.isCheck(field[move.letFrom][move.digFrom].color);
     }
 

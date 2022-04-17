@@ -8,7 +8,7 @@ public interface Board {
 
     Cell[][] getField();
 
-    void appendMove(Move move);
+    void makeMove(Move move);
 
     void insertMoves(String moves);
 
@@ -16,7 +16,7 @@ public interface Board {
 
     boolean isCheck(Color side);
 
-    boolean isMate();
+    boolean isMate(Color side);
 
     boolean isOurMove();
 
@@ -25,4 +25,6 @@ public interface Board {
     void showBoard();
 
     void setOurColor(Color color);
+
+    boolean isOurMoveByMoves(String moves);
 }

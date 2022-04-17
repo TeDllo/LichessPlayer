@@ -14,6 +14,8 @@ import java.util.Objects;
 
 public class Game {
 
+    private static final int MOVE_LENGTH = 4;
+
     private final String nickname;
     private final String GameID;
     private final LichessClient client;
@@ -45,57 +47,69 @@ public class Game {
     }
 
     private void streamGame() throws IOException {
-        InputStream in = client.streamRequest(GameID);
-        String eventJSON = client.extractData(in);
+        InputStream in = client.getStreamRequest(GameID);
+        String eventJSON = client.extractInputStreamData(in);
         while (eventJSON != null) {
             repeat = false;
             if (!eventJSON.equals("")) {
-                process(eventJSON);
+                processEvent(eventJSON);
             }
             if (!repeat) {
-                eventJSON = client.extractData(in);
+                eventJSON = client.extractInputStreamData(in);
             }
         }
         System.out.println("Game is finished!");
     }
 
-    public void process(String eventJSON) {
-        String type = parseField("type", eventJSON, false);
-        if (Objects.equals(type, "gameFull")) {
-            board.setOurColor(getColor(eventJSON));
-        }
-
-        String status = parseField("status", eventJSON, false);
-        if (status != null && !status.equals("started")) {
-            System.out.printf("Status: %s.\n", status);
+    public void processEvent(String eventJSON) {
+        if (isGameFinished(parseField("status", eventJSON, false))) {
             return;
         }
 
-        if (!Objects.equals(type, "chatLine")) {
-            nextMove(parseField("moves", eventJSON, false));
+        String type = parseField("type", eventJSON, false);
+        String moves = parseField("moves", eventJSON, false);
+        if (Objects.equals(type, "gameFull")) {
+            processGameFull(moves, getOurColor(eventJSON));
+        } else if (!Objects.equals(type, "chatLine")){
+            processGameStat(moves);
         }
-    }
 
-    private void nextMove(String moves) {
-        assert moves != null;
-        board.insertMoves(moves);
         if (board.isOurMove()) {
-            Move nextMove = engine.nextMove(board);
-            try {
-                client.makeMoveRequest(GameID, nextMove.text);
-                board.appendMove(nextMove);
-            } catch (IOException e) {
-                System.err.println(e.getMessage());
-                repeat = true;
-            } catch (BadMoveException e) {
-                System.err.println("!!!Bad move!!!\n" + nextMove.text);
-                board.showBoard();
-                repeat = true;
-            }
+            makeMove();
         }
     }
 
-    private Color getColor(String eventJSON) {
+    private void processGameFull(String moves, Color ourColor) {
+        board.setOurColor(ourColor);
+        board.insertMoves(moves);
+    }
+
+    private void processGameStat(String moves) {
+        if (board.isOurMoveByMoves(moves) && !moves.isEmpty()) {
+            board.makeMove(new Move(moves.substring(moves.length() - 4)));
+        }
+    }
+
+    private boolean isGameFinished(String status) {
+        return status != null && !status.equals("started");
+    }
+
+    private void makeMove() {
+        Move nextMove = engine.nextMove(board);
+        try {
+            client.makeMoveRequest(GameID, nextMove.text);
+            board.makeMove(nextMove);
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+            repeat = true;
+        } catch (BadMoveException e) {
+            System.err.println("!!!Bad move!!!\n" + nextMove.text);
+            board.showBoard();
+            repeat = true;
+        }
+    }
+
+    private Color getOurColor(String eventJSON) {
         String white = parseField("white", eventJSON, true);
         String id = parseField("id", white, false);
         return Objects.equals(id, nickname) ? Color.WHITE : Color.BLACK;

@@ -22,7 +22,7 @@ public class LichessClient {
         this.access_token = access_token;
     }
 
-    public InputStream streamRequest(String gameID) throws IOException {
+    public InputStream getStreamRequest(String gameID) throws IOException {
         return get("/api/board/game/stream/" + gameID);
     }
 
@@ -64,7 +64,7 @@ public class LichessClient {
 
         if (code != 200) {
             InputStream in = urlConnection.getErrorStream();
-            String msg = extractData(in);
+            String msg = extractInputStreamData(in);
             if (msg.contains("move")) {
                 System.err.println(msg);
                 throw new BadMoveException();
@@ -72,7 +72,7 @@ public class LichessClient {
         }
     }
 
-    public String extractData(InputStream in) throws IOException {
+    public String extractInputStreamData(InputStream in) throws IOException {
         return new BufferedReader(new InputStreamReader(in,
                 StandardCharsets.UTF_8)).readLine();
     }
