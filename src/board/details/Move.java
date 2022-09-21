@@ -1,13 +1,14 @@
 package board.details;
 
-public class Move {
-
+public class Move implements Comparable<Move> {
     public final int letFrom;
+
     public final int digFrom;
     public final int letTo;
     public final int digTo;
-
     public final String text;
+
+    public int balance;
 
     public Move(String move) {
         letFrom = move.charAt(0) - 'a' + 1;
@@ -24,6 +25,16 @@ public class Move {
         letTo = x2;
         digTo = y2;
 
-        text = String.format("%c%c%c%c", letFrom + 'a' - 1, digFrom, letTo + 'a' - 1, digTo);
+        text = String.format("%c%c%c%c", letFrom + 'a' - 1, digFrom + '0', letTo + 'a' - 1, digTo + '0');
+    }
+
+    @Override
+    public int compareTo(Move o) {
+        if (this.balance < o.balance) {
+            return -1;
+        } else if (this.balance == o.balance) {
+            return 0;
+        }
+        return 1;
     }
 }

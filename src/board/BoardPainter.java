@@ -26,7 +26,7 @@ public class BoardPainter {
             for (int letter = 1; letter < 9; letter++) {
                 Cell cell = field[Math.abs(reverse - letter)][Math.abs(reverse - digit)];
                 setMode(getBackgroundColor(letter, digit), getTextColor(cell.color));
-                System.out.print(cell + ConsoleColors.RESET);
+                System.out.print(" " + cell + " " + ConsoleColors.RESET);
             }
             System.out.println();
         }

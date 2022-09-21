@@ -1,12 +1,11 @@
 package board;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static board.details.Figure.*;
 import static board.details.Color.*;
+import static board.CorrectFigureMoves.*;
 
 import board.details.*;
 
@@ -26,12 +25,14 @@ public class ClassicBoard implements Board {
     }
 
     @Override
-    public void insertMoves(String moves) {
-        if (!moves.isEmpty()) {
-            this.moves = Arrays.stream(moves.split(" "))
-                    .map(mapper)
-                    .collect(Collectors.toCollection(ArrayList::new));
-            updateField();
+    public void insertMoves(String movesString) {
+        if (!movesString.isEmpty()) {
+            String[] textMoves = movesString.split(" ");
+            moves = new ArrayList<>();
+            initField();
+            for (String move : textMoves) {
+                makeMove(new Move(move));
+            }
         }
     }
 
@@ -43,16 +44,14 @@ public class ClassicBoard implements Board {
     @Override
     public void makeMove(Move move) {
         moves.add(move);
+//        System.out.println("Making move: " + move.text);
 
         // Checking Castling
-        if (field[move.letFrom][move.digFrom].figure == KING && kingCastling(move, field[move.letFrom][move.digFrom].color)) {
+        if (isCastling(move)) {
             makeCastling(move);
         }
 
-        field[move.letTo][move.digTo].figure = field[move.letFrom][move.digFrom].figure;
-        field[move.letTo][move.digTo].color = field[move.letFrom][move.digFrom].color;
-
-        field[move.letFrom][move.digFrom].color = EMPTY;
+        processMove(move);
 
         // Checking transforming into QUEEN
         if (field[move.letTo][move.digTo].figure == PAWN) {
@@ -61,12 +60,32 @@ public class ClassicBoard implements Board {
                 field[move.letTo][move.digTo].figure = QUEEN;
             }
         }
+    }
 
+    @Override
+    public boolean isCastling(Move move) {
+        return field[move.letFrom][move.digFrom].figure == KING && kingCastling(move, field[move.letFrom][move.digFrom].color);
+    }
+
+    @Override
+    public void revertMove(Move move, Cell eater, Cell food, boolean isCastling) {
+        moves.remove(moves.size() - 1);
+        field[move.letFrom][move.digFrom] = eater;
+        field[move.letTo][move.digTo] = food;
+
+        if (isCastling) {
+            revertRookCastling(move);
+        }
     }
 
     @Override
     public Cell[][] getField() {
         return field;
+    }
+
+    @Override
+    public Cell getCell(int letter, int digit) {
+        return new Cell(field[letter][digit]);
     }
 
     @Override
@@ -94,10 +113,14 @@ public class ClassicBoard implements Board {
     public boolean correctMove(Move move) {
         boolean isMove = (move.letFrom != move.letTo || move.digFrom != move.digTo);
         boolean hasFigure = field[move.letFrom][move.digFrom].color != EMPTY;
-        boolean hasAbility = checkAbility(move);
-        boolean hasRights = checkRights(move);
+        boolean isKing = field[move.letTo][move.digTo].figure == KING
+                && field[move.letTo][move.digTo].color != EMPTY;
 
-        return isMove && hasFigure && hasAbility && hasRights;
+        if (!isMove || !hasFigure || isKing) {
+            return false;
+        }
+
+        return checkAbility(move) && checkRights(move);
     }
 
     private Point findKing(Color side) {
@@ -146,21 +169,33 @@ public class ClassicBoard implements Board {
     }
 
     private boolean hasCorrectMove(int letterFrom, int digitFrom) {
-        for (int letter = 1; letter < 9; letter++) {
-            for (int digit = 1; digit < 9; digit++) {
-                if (correctMove(new Move(letterFrom, digitFrom, letter, digit))) {
-                    return true;
-                }
+        ArrayList<Point> points
+                = getPossibleMoves(field[letterFrom][digitFrom].figure, new Point(letterFrom, digitFrom));
+        for (Point point : points) {
+            if (correctMove(new Move(letterFrom, digitFrom, point.letter, point.digit))) {
+                return true;
             }
         }
+
         return false;
     }
 
-    private void updateField() {
-        initField();
-        for (Move move : moves) {
-            makeMove(move);
-        }
+    @Override
+    public ArrayList<Point> getPossibleMoves(Figure figure, Point from) {
+        return switch (figure) {
+            case KING -> kingMoves(from);
+            case QUEEN -> queenMoves(from);
+            case ROOK -> rookMoves(from);
+            case BISHOP -> bishopMoves(from);
+            case NIGHT -> nightMoves(from);
+            case PAWN -> pawnMoves(from, field[from.letter][from.digit].color);
+        };
+    }
+
+    private void revertRookCastling(Move move) {
+        int rookLetFrom = (move.letTo == 3 ? 4 : 6);
+        int rookLetTo = (move.letTo == 3 ? 1 : 8);
+        processMove(new Move(rookLetFrom, move.digTo, rookLetTo, move.digTo));
     }
 
     private void makeCastling(Move move) {
@@ -168,7 +203,14 @@ public class ClassicBoard implements Board {
         int rookDigFrom = (move.digTo);
         int rookLetTo = (move.letTo == 3 ? 4 : 6);
         int rookDigTo = (move.digTo);
-        makeMove(new Move(rookLetFrom, rookDigFrom, rookLetTo, rookDigTo));
+        processMove(new Move(rookLetFrom, rookDigFrom, rookLetTo, rookDigTo));
+    }
+
+    private void processMove(Move move) {
+        field[move.letTo][move.digTo].figure = field[move.letFrom][move.digFrom].figure;
+        field[move.letTo][move.digTo].color = field[move.letFrom][move.digFrom].color;
+
+        field[move.letFrom][move.digFrom].color = EMPTY;
     }
 
     private void initField() {
@@ -227,11 +269,35 @@ public class ClassicBoard implements Board {
 
         if (sideTo == EMPTY) {
             boolean one = move.digTo - move.digFrom == reverse;
-            boolean two = move.digTo - move.digFrom == 2 * reverse && move.digFrom == (reverse == -1 ? 7 : 2);
-            return one || two;
+            boolean two = (move.digTo - move.digFrom == 2 * reverse) && (move.digFrom == (reverse == -1 ? 7 : 2))
+                    && field[move.letFrom][(move.digFrom + move.digTo) / 2].color == EMPTY;
+            return (one || two) && move.letFrom == move.letTo;
         } else {
             return Math.abs(move.letTo - move.letFrom) == 1 && move.digTo - move.digFrom == reverse && sideFrom != sideTo;
         }
+    }
+
+    @Override
+    public String notation() {
+        StringBuilder builder = new StringBuilder();
+        builder.append(turn().name().charAt(0));
+        int freeCounter = 0;
+        for (int digit = 1; digit < 9; digit++) {
+            for (int letter = 1; letter < 9; letter++) {
+                if (freeCounter > 0 && field[letter][digit].color != EMPTY) {
+                    builder.append(freeCounter);
+                    freeCounter = 0;
+                } else if (field[letter][digit].color == EMPTY) {
+                    freeCounter++;
+                }
+                builder.append(switch (field[letter][digit].color) {
+                    case WHITE -> field[letter][digit].toString();
+                    case BLACK -> field[letter][digit].toString().toLowerCase();
+                    case EMPTY -> "";
+                });
+            }
+        }
+        return builder.toString();
     }
 
     private boolean rookAbility(Move move) {
@@ -286,7 +352,7 @@ public class ClassicBoard implements Board {
 
         boolean rightMove = move.text.equals(moves[0]) || move.text.equals(moves[1]);
         boolean isRook = field[rookLet][move.digFrom].figure == ROOK;
-        boolean isMoved = field[rookLet][move.digFrom].moved;
+        boolean isMoved = field[rookLet][move.digFrom].moved || field[move.letFrom][move.digFrom].moved;
         boolean cleanPath = checkClearPath(new Move(move.letFrom, move.digFrom, rookLet, move.digFrom));
 
         return rightMove && isRook && !isMoved && cleanPath && !isCheck(side);
@@ -339,4 +405,5 @@ public class ClassicBoard implements Board {
     private int dt(int tFrom, int tTo) {
         return (tTo == tFrom ? 0 : 1) * (tTo > tFrom ? 1 : -1);
     }
+
 }

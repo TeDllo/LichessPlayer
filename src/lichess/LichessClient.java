@@ -26,6 +26,10 @@ public class LichessClient {
         return get("/api/board/game/stream/" + gameID);
     }
 
+    public InputStream getStreamEventsRequest() throws IOException {
+        return get("/api/stream/event");
+    }
+
     public void makeMoveRequest(String gameID, String move) throws IOException {
         post("/api/board/game/" + gameID + "/move/" + move);
     }
@@ -65,10 +69,8 @@ public class LichessClient {
         if (code != 200) {
             InputStream in = urlConnection.getErrorStream();
             String msg = extractInputStreamData(in);
-            if (msg.contains("move")) {
-                System.err.println(msg);
-                throw new BadMoveException();
-            }
+            System.err.println(msg);
+            throw new BadMoveException();
         }
     }
 

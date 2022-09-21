@@ -8,10 +8,17 @@ public class Cell {
 
     @Override
     public String toString() {
-        return " "
-                + (color == Color.EMPTY
+        return (color == Color.EMPTY
                 ? " "
-                : Character.toString(figure.name().charAt(0)))
-                + " ";
+                : Character.toString(figure.name().charAt(0)));
+    }
+
+    public Cell() {
+    }
+
+    public Cell(Cell cell) {
+        this.figure = cell.figure;
+        this.color = cell.color;
+        this.moved = cell.moved;
     }
 }

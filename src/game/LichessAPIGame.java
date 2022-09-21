@@ -1,18 +1,19 @@
-package lichess;
+package game;
 
 import board.exceptions.BadMoveException;
 import board.Board;
 import board.details.Color;
 import board.details.Move;
 import engine.Engine;
+import lichess.LichessClient;
 
-import static lichess.JSONParser.parseField;
+import static handControl.JSONParser.parseField;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
 
-public class Game {
+public class LichessAPIGame implements Game {
 
     private static final int MOVE_LENGTH = 4;
 
@@ -24,7 +25,7 @@ public class Game {
 
     private boolean repeat = false;
 
-    public Game(String nickname, String GameID, LichessClient client, Board board, Engine engine) {
+    public LichessAPIGame(String nickname, String GameID, LichessClient client, Board board, Engine engine) {
         this.nickname = nickname;
         this.GameID = GameID;
         this.client = client;
@@ -74,6 +75,7 @@ public class Game {
             processGameStat(moves);
         }
 
+        System.out.printf("Is our move = %b\n", board.isOurMove());
         if (board.isOurMove()) {
             makeMove();
         }
@@ -86,7 +88,13 @@ public class Game {
 
     private void processGameStat(String moves) {
         if (board.isOurMoveByMoves(moves) && !moves.isEmpty()) {
-            board.makeMove(new Move(moves.substring(moves.length() - 4)));
+            String lastMove = moves.substring(moves.length() - 4);
+            System.out.println("Before:");
+            board.showBoard();
+            board.makeMove(new Move(lastMove));
+            System.out.println("After:");
+            board.showBoard();
+            System.out.println("Made move: " + lastMove);
         }
     }
 
